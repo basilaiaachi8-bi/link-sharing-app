@@ -42,26 +42,43 @@ export default function Profile() {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (!["image/png", "image/jpeg", "image/jpg"].includes(file.type)) {
-      alert("Please upload a PNG or JPG image.");
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      alert("File size must be under 2MB.");
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file (PNG, JPG, JPEG).");
       return;
     }
 
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onload = (event) => {
       const img = new Image();
-      img.src = reader.result;
+      img.src = event.target.result;
       img.onload = () => {
-        if (img.width > 1024 || img.height > 1024) {
-          alert("Image resolution must be below 1024x1024px.");
-          return;
+        const MAX_WIDTH = 1024;
+        const MAX_HEIGHT = 1024;
+
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width = Math.round((width * MAX_HEIGHT) / height);
+            height = MAX_HEIGHT;
+          }
         }
-        setImagePreview(reader.result);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const resizedBase64 = canvas.toDataURL("image/jpeg", 0.85);
+        setImagePreview(resizedBase64);
       };
     };
     reader.readAsDataURL(file);
@@ -125,7 +142,7 @@ export default function Profile() {
                 )}
                 <input
                   type="file"
-                  accept="image/png, image/jpeg"
+                  accept="image/png, image/jpeg, image/jpg"
                   onChange={handleImageUpload}
                   className="hidden"
                 />
